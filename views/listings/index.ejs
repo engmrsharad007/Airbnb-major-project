@@ -1,0 +1,167 @@
+<% layout("/layouts/boilerplate") %>
+<style>
+  /* container */
+  #filters {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  /* scrollable wrapper with dynamic padding-right for toggle */
+  #filter-wrapper {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    gap: 1.5rem;
+    padding-left: 1rem;
+    padding-right: calc(10rem); /* will adjust dynamically in JS */
+    width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: none;
+  }
+  #filter-wrapper::-webkit-scrollbar { display: none; }
+
+  .filter {
+    flex: 0 0 auto;
+    text-align: center;
+    min-width: 72px;
+    opacity: 0.9;
+  }
+  .filter p { font-size: 0.8rem; margin: 0.25rem 0 0; }
+
+  /* toggle capsule */
+  .tax-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 1px solid #000;
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  #collapseBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.1rem;
+  }
+
+  /* fade effect before toggle */
+  #filters::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 7.5rem;
+    width: 3rem;
+    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.3s ease;
+    opacity: 1;
+  }
+  #filters.hide-right::after { opacity: 0; }
+</style>
+
+<div id="filters">
+  <div id="filter-wrapper">
+    <div class="filter"><div><i class="fa-solid fa-fire"></i></div><p>Trending</p></div>
+    <div class="filter"><div><i class="fa-solid fa-bed"></i></div><p>Rooms</p></div>
+    <div class="filter"><div><i class="fa-solid fa-mountain-city"></i></div><p>Iconic Cities</p></div>
+    <div class="filter"><div><i class="fa-solid fa-mountain"></i></div><p>Mountains</p></div>
+    <div class="filter"><div><i class="fa-brands fa-fort-awesome"></i></div><p>Castles</p></div>
+    <div class="filter"><div><i class="fa-solid fa-person-swimming"></i></div><p>Pools</p></div>
+    <div class="filter"><div><i class="fa-solid fa-campground"></i></div><p>Camping</p></div>
+    <div class="filter"><div><i class="fa-solid fa-cow"></i></div><p>Farms</p></div>
+    <div class="filter"><div><i class="fa-solid fa-snowflake"></i></div><p>Arctic</p></div>
+    <div class="filter"><div><i class="fa-solid fa-igloo"></i></div><p>Domes</p></div>
+    <div class="filter"><div><i class="fa-solid fa-ship"></i></div><p>Boats</p></div>
+  </div>
+
+  <div class="tax-toggle">
+    <div class="form-check-reverse form-switch">
+      <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+      <label class="form-check-label" for="flexSwitchCheckDefault">Display total after taxes</label>
+    </div>
+    <button id="collapseBtn"><i class="fa-solid fa-angle-up"></i></button>
+  </div>
+</div>
+
+<div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 mt-3">
+  <% for(listing of allListing) {%>
+      <div class="card listing-card col">
+          <a href="/listings/<%= listing._id %>" class="listing-link">
+              <img src="<%= listing.image.url %>" class="card-img-top" alt="listing_image" style="height: 20rem">
+              <div class="card-img-overlay"></div>
+              <div class="card-body">
+                  <p class="card-text">
+                      <b><%= listing.title %></b><br>
+                      &#8377;<%= listing.price.toLocaleString("en-in") %>
+                      <i class="tax_info">&nbsp;&nbsp;+18% Gst</i>
+                  </p>
+              </div>
+          </a>
+      </div>
+  <% } %>
+</div>
+
+<script>
+  const taxSwitch = document.getElementById("flexSwitchCheckDefault");
+  taxSwitch.addEventListener("click", () => {
+    const tax_info = document.getElementsByClassName("tax_info");
+    for (info of tax_info) {
+      info.style.display = info.style.display != "inline" ? "inline" : "none";
+    }
+  });
+
+  const wrapper = document.getElementById('filter-wrapper');
+  const container = document.getElementById('filters');
+  const toggle = document.querySelector('.tax-toggle');
+
+  // dynamically adjust padding-right for toggle width
+  function adjustPadding() {
+    const toggleWidth = toggle.offsetWidth + 16; // gap
+    wrapper.style.paddingRight = `${toggleWidth}px`;
+  }
+  window.addEventListener('resize', adjustPadding);
+  adjustPadding();
+
+  // vertical wheel → horizontal scroll
+  wrapper.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      wrapper.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  // fade effect
+  function updateFade() {
+    const scrollLeft = wrapper.scrollLeft;
+    const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+    container.classList.toggle('hide-right', scrollLeft >= maxScroll - 5);
+  }
+  wrapper.addEventListener('scroll', updateFade);
+  window.addEventListener('resize', updateFade);
+  updateFade();
+
+  // collapse button scroll
+  const collapseBtn = document.getElementById('collapseBtn');
+  let atStart = true;
+  collapseBtn.addEventListener('click', () => {
+    if (atStart) wrapper.scrollTo({ left: wrapper.scrollWidth, behavior: 'smooth' });
+    else wrapper.scrollTo({ left: 0, behavior: 'smooth' });
+    atStart = !atStart;
+    collapseBtn.innerHTML = atStart ? '<i class="fa-solid fa-angle-up"></i>' : '<i class="fa-solid fa-angle-down"></i>';
+  });
+</script>
